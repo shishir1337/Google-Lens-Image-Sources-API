@@ -28,7 +28,8 @@ app.use(limiter); // Apply rate limiting
 // Validate request body
 const validateRequest = (req) => {
     const schema = Joi.object({
-        imageUrl: Joi.string().uri().required()
+        imageUrl: Joi.string().uri().required(),
+        no_cache: Joi.boolean() // Optional boolean parameter
     });
     return schema.validate(req.body);
 };
@@ -160,7 +161,20 @@ const extractRelatedSources = async (page) => {
 };
 
 // Upload image and get sources from Google Lens
-const uploadImageAndGetSources = async (imageUrl) => {
+const uploadImageAndGetSources = async (imageUrl, noCache = false) => {
+    if (noCache) {
+        console.log("Bypassing cache...");
+        // Always fetch new results when noCache is true
+        try {
+            const relatedSources = await cluster.execute(imageUrl);
+            const result = { "image_sources": relatedSources };
+            return result;
+        } catch (error) {
+            console.error('Error during image processing:', error);
+            throw new Error('Error during image processing');
+        }
+    }
+
     const cachedResult = cache.get(imageUrl);
     if (cachedResult) {
         console.log("Returning cached result...");
@@ -191,10 +205,10 @@ app.post('/api/upload', async (req, res) => {
         return res.status(400).json({ error: error.details[0].message });
     }
 
-    const { imageUrl } = req.body;
+    const { imageUrl, no_cache } = req.body; // Extract no_cache from request body
     
     try {
-        const sources = await uploadImageAndGetSources(imageUrl);
+        const sources = await uploadImageAndGetSources(imageUrl, no_cache);
         res.json(sources);
     } catch (error) {
         res.status(500).json({ error: 'An error occurred while processing the image' });
