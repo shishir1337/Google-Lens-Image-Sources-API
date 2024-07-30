@@ -125,6 +125,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For any inquiries, please contact [shishirdevilzz@gmail.com](mailto:shishirdevilzz@gmail.com).
+For any inquiries, please contact [mdshishirahmed811@gmail.com](mailto:mdshishirahmed811@gmail.com).
 
 
