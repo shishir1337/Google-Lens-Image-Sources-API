@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "preinstall": "npx puppeteer-install",
     "build": "echo 'No build step' && exit 0",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
