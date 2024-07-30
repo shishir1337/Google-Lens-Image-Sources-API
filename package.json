@@ -6,7 +6,8 @@
     "express-rate-limit": "^7.4.0",
     "joi": "^17.13.3",
     "node-cache": "^5.1.2",
-    "puppeteer": "^22.14.0"
+    "puppeteer": "^22.14.0",
+    "puppeteer-cluster": "^0.24.0"
   },
   "name": "crwaler",
   "version": "1.0.0",

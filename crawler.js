@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const { Cluster } = require('puppeteer-cluster');
 const express = require('express');
 const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
@@ -32,31 +33,34 @@ const validateRequest = (req) => {
 // Utility function to delay execution
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Launch a new Puppeteer browser instance
-const launchBrowser = async () => {
-    console.log("Launching browser...");
-    console.time("Browser Launch Time");
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-    console.timeEnd("Browser Launch Time");
-    return browser;
+// Initialize Puppeteer Cluster
+const initCluster = async () => {
+    const cluster = await Cluster.launch({
+        concurrency: Cluster.CONCURRENCY_CONTEXT,
+        maxConcurrency: 5,
+        puppeteerOptions: {
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        }
+    });
+
+    await cluster.task(async ({ page, data: imageUrl }) => {
+        const lensUrl = 'https://lens.google.com/uploadbyurl?url=' + encodeURIComponent(imageUrl);
+
+        await page.goto(lensUrl, { waitUntil: 'networkidle2' });
+        await waitForResults(page);
+        await clickExactMatchesButton(page);
+        await delay(3000); // Wait for the results to load
+        await loadMoreExactMatches(page);
+        const relatedSources = await extractRelatedSources(page);
+
+        return relatedSources;
+    });
+
+    return cluster;
 };
 
-// Open a new page in the browser
-const openPage = async (browser) => {
-    console.log("Opening new page...");
-    console.time("Page Open Time");
-    const page = await browser.newPage();
-    console.timeEnd("Page Open Time");
-    return page;
-};
-
-// Navigate to a given URL
-const navigateToUrl = async (page, url) => {
-    console.log(`Navigating to URL: ${url}`);
-    console.time("Navigation Time");
-    await page.goto(url, { waitUntil: 'networkidle2' });
-    console.timeEnd("Navigation Time");
-};
+let cluster;
 
 // Wait for search results to load
 const waitForResults = async (page) => {
@@ -160,29 +164,14 @@ const uploadImageAndGetSources = async (imageUrl) => {
         return cachedResult;
     }
 
-    const browser = await launchBrowser();
-    const page = await openPage(browser);
-
     try {
-        const lensUrl = 'https://lens.google.com/uploadbyurl?url=' + encodeURIComponent(imageUrl);
-        await navigateToUrl(page, lensUrl);
-        await waitForResults(page);
-        await clickExactMatchesButton(page);
-        await delay(3000); // Wait for the results to load
-        await loadMoreExactMatches(page);
-        const relatedSources = await extractRelatedSources(page);
-
+        const relatedSources = await cluster.execute(imageUrl);
         const result = { "image_sources": relatedSources };
         cache.set(imageUrl, result);
         return result;
     } catch (error) {
         console.error('Error during image processing:', error);
         throw new Error('Error during image processing');
-    } finally {
-        console.log("Closing browser...");
-        console.time("Browser Close Time");
-        await browser.close();
-        console.timeEnd("Browser Close Time");
     }
 };
 
@@ -209,6 +198,12 @@ app.post('/api/upload', async (req, res) => {
     }
 });
 
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+// Initialize the cluster and start the server
+initCluster().then(initializedCluster => {
+    cluster = initializedCluster;
+    app.listen(port, () => {
+        console.log(`Server is running on http://localhost:${port}`);
+    });
+}).catch(err => {
+    console.error('Failed to initialize Puppeteer Cluster:', err);
 });
