@@ -8,7 +8,7 @@ This project provides an API for uploading an image URL and retrieving related s
 - **Related Sources Extraction**: Extracts related sources including title, source, link, thumbnails, and dimensions.
 - **Concurrency Management**: Utilizes Puppeteer Cluster for handling multiple requests concurrently.
 - **Rate Limiting**: Limits the number of requests per IP to prevent abuse.
-- **Caching**: Caches results for faster subsequent requests.
+- **Caching**: Caches results for faster subsequent requests with an option to bypass cache.
 - **Error Handling**: Centralized error handling ensures robust performance.
 
 ## Prerequisites
@@ -53,7 +53,8 @@ This project provides an API for uploading an image URL and retrieving related s
     
       ```json
       {
-          "imageUrl": "https://example.com/image.jpg"
+          "imageUrl": "https://example.com/image.jpg",
+          "no_cache": false
       }
       ```
     - **Response**:
@@ -76,6 +77,10 @@ This project provides an API for uploading an image URL and retrieving related s
       }
       ```
 
+   - **`no_cache` Parameter** (Optional): 
+     - `true` to bypass the cache and fetch fresh results.
+     - `false` (or omitted) to use cached results if available.
+
 ## Implementation Details
 
 ### Rate Limiting
@@ -84,7 +89,7 @@ Limits the number of requests to 10 per minute per IP to prevent abuse. This is 
 
 ### Caching
 
-Results are cached for 1 hour to improve performance and reduce redundant processing. The `node-cache` package is used for caching.
+Results are cached for 1 hour to improve performance and reduce redundant processing. The `node-cache` package is used for caching. You can bypass caching by setting the `no_cache` parameter to `true`.
 
 ### Concurrency Management
 
@@ -104,8 +109,8 @@ Centralized error handling middleware ensures that errors are properly logged an
 Here is an example of how to make a request to the API using `curl`:
 
 ```bash
-curl -X POST http://localhost:3000/api/upload -H "Content-Type: application/json" -d '{"imageUrl": "https://example.com/image.jpg"}'
- ```
+curl -X POST http://localhost:3000/api/upload -H "Content-Type: application/json" -d '{"imageUrl": "https://example.com/image.jpg", "no_cache": false}'
+```
 
 ## Contributing
 
