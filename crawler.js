@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const NodeCache = require('node-cache');
 const Joi = require('joi');
+const cors = require('cors'); // Import the cors package
 
 const app = express();
 const port = 3000;
@@ -19,6 +20,8 @@ const limiter = rateLimit({
     message: "Too many requests from this IP, please try again later.",
 });
 
+// Apply middleware
+app.use(cors()); // Enable CORS for all origins
 app.use(bodyParser.json());
 app.use(limiter); // Apply rate limiting
 
