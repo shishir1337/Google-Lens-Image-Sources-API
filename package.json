@@ -1,12 +1,15 @@
 {
   "name": "crwaler",
   "version": "1.0.0",
+  "description": "A brief description of your project",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'No build step' && exit 0",
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "Md. Shishir Ahmed",
+  "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -18,8 +21,11 @@
     "puppeteer": "^22.14.0",
     "puppeteer-cluster": "^0.24.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "A crawler application using Puppeteer and Puppeteer-Cluster for image source extraction."
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shishir1337/Google-Lens-Image-Sources-API.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
