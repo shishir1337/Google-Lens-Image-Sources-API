@@ -7,46 +7,54 @@ const port = 3000;
 
 app.use(bodyParser.json());
 
-async function delay(time) {
-    return new Promise(resolve => setTimeout(resolve, time));
-}
+// Utility function to delay execution
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function launchBrowser() {
+// Launch a new Puppeteer browser instance
+const launchBrowser = async () => {
     console.log("Launching browser...");
     console.time("Browser Launch Time");
     const browser = await puppeteer.launch({ headless: false });
     console.timeEnd("Browser Launch Time");
     return browser;
-}
+};
 
-async function openPage(browser) {
+// Open a new page in the browser
+const openPage = async browser => {
     console.log("Opening new page...");
     console.time("Page Open Time");
     const page = await browser.newPage();
     console.timeEnd("Page Open Time");
     return page;
-}
+};
 
-async function navigateToUrl(page, url) {
+// Navigate to a given URL
+const navigateToUrl = async (page, url) => {
     console.log(`Navigating to URL: ${url}`);
     console.time("Navigation Time");
     await page.goto(url, { waitUntil: 'networkidle2' });
     console.timeEnd("Navigation Time");
-}
+};
 
-async function waitForResults(page) {
+// Wait for search results to load
+const waitForResults = async page => {
     console.log("Waiting for results to load...");
     console.time("Results Load Time");
-    await page.waitForSelector('div.LHkehc[role="button"] div.WF9wo', { timeout: 60000 });
+    try {
+        await page.waitForSelector('div.LHkehc[role="button"] div.WF9wo', { timeout: 60000 });
+    } catch (error) {
+        console.error("Results did not load in time:", error);
+        throw new Error("Results did not load in time");
+    }
     console.timeEnd("Results Load Time");
-}
+};
 
-async function clickExactMatchesButton(page) {
+// Click the 'Find image source' button
+const clickExactMatchesButton = async page => {
     console.log("Clicking 'Find image source' button...");
     console.time("Click 'Find image source' Button Time");
 
     const buttonSelector = 'button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-INsAgc';
-    
     try {
         await page.waitForSelector(buttonSelector, { visible: true, timeout: 60000 });
         const button = await page.$(buttonSelector);
@@ -58,12 +66,14 @@ async function clickExactMatchesButton(page) {
         }
     } catch (error) {
         console.error("Error waiting for the button:", error);
+        throw new Error("Error clicking the 'Find image source' button");
     }
 
     console.timeEnd("Click 'Find image source' Button Time");
-}
+};
 
-async function loadMoreExactMatches(page) {
+// Click 'More exact matches' button if available
+const loadMoreExactMatches = async page => {
     const moreButtonSelector = 'div.rqhI4d button.VfPpkd-LgbsSe';
     let moreButton = await page.$(moreButtonSelector);
     while (moreButton !== null) {
@@ -74,9 +84,10 @@ async function loadMoreExactMatches(page) {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Scroll to the bottom
         moreButton = await page.$(moreButtonSelector);
     }
-}
+};
 
-async function extractRelatedSources(page) {
+// Extract related sources from the search results
+const extractRelatedSources = async page => {
     console.log("Extracting related sources...");
     console.time("Extraction Time");
     const relatedSources = await page.evaluate(() => {
@@ -117,9 +128,10 @@ async function extractRelatedSources(page) {
     });
     console.timeEnd("Extraction Time");
     return relatedSources;
-}
+};
 
-async function uploadImageAndGetSources(imageUrl) {
+// Upload image and get sources from Google Lens
+const uploadImageAndGetSources = async imageUrl => {
     const browser = await launchBrowser();
     const page = await openPage(browser);
 
@@ -135,16 +147,16 @@ async function uploadImageAndGetSources(imageUrl) {
         return { "image_sources": relatedSources };
     } catch (error) {
         console.error('Error during image processing:', error);
-        throw error;
+        throw new Error('Error during image processing');
     } finally {
         console.log("Closing browser...");
         console.time("Browser Close Time");
         await browser.close();
         console.timeEnd("Browser Close Time");
     }
-}
+};
 
-// Express API
+// Express API endpoint
 app.post('/api/upload', async (req, res) => {
     const { imageUrl } = req.body;
     if (!imageUrl) {
