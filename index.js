@@ -11,7 +11,7 @@ const app = express();
 const port = 3000;
 
 // Initialize cache with a TTL of 1 hour
-const cache = new NodeCache({ stdTTL: 3600 });
+const cache = new NodeCache({ stdTTL: 3600, checkperiod: 600, maxKeys: 1000 });
 
 // Configure rate limiter: allow up to 10 requests per minute per IP
 const limiter = rateLimit({
@@ -41,7 +41,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const initCluster = async () => {
     const cluster = await Cluster.launch({
         concurrency: Cluster.CONCURRENCY_CONTEXT,
-        maxConcurrency: 5,
+        maxConcurrency: 20,
         puppeteerOptions: {
             headless: true,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -49,17 +49,21 @@ const initCluster = async () => {
     });
 
     await cluster.task(async ({ page, data: imageUrl }) => {
-        const lensUrl = 'https://lens.google.com/uploadbyurl?url=' + encodeURIComponent(imageUrl);
-
-        await page.goto(lensUrl, { waitUntil: 'networkidle2' });
-        await waitForResults(page);
-        await clickExactMatchesButton(page);
-        await delay(3000); // Wait for the results to load
-        await loadMoreExactMatches(page);
-        const relatedSources = await extractRelatedSources(page);
-
-        return relatedSources;
+        try {
+            const lensUrl = 'https://lens.google.com/uploadbyurl?url=' + encodeURIComponent(imageUrl);
+            await page.goto(lensUrl, { waitUntil: 'networkidle0' });
+            await waitForResults(page);
+            await clickExactMatchesButton(page);
+            await delay(2000);
+            await loadMoreExactMatches(page);
+            const relatedSources = await extractRelatedSources(page);
+            return relatedSources;
+        } catch (error) {
+            console.error('Error processing image in cluster task:', error);
+            throw error;
+        }
     });
+    
 
     return cluster;
 };
@@ -71,7 +75,7 @@ const waitForResults = async (page) => {
     console.log("Waiting for results to load...");
     console.time("Results Load Time");
     try {
-        await page.waitForSelector('div.LHkehc[role="button"] div.WF9wo', { timeout: 60000 });
+        await page.waitForSelector('div.LHkehc[role="button"] div.WF9wo', { timeout: 5000 });
     } catch (error) {
         console.error("Results did not load in time:", error);
         throw new Error("Results did not load in time");
@@ -86,7 +90,7 @@ const clickExactMatchesButton = async (page) => {
 
     const buttonSelector = 'button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-INsAgc';
     try {
-        await page.waitForSelector(buttonSelector, { visible: true, timeout: 60000 });
+        await page.waitForSelector(buttonSelector, { visible: true, timeout: 10000 });
         const button = await page.$(buttonSelector);
         if (button) {
             await button.click();
@@ -110,7 +114,7 @@ const loadMoreExactMatches = async (page) => {
         console.log("Clicking 'More exact matches' button...");
         await page.click(moreButtonSelector);
         console.log("Waiting for more exact matches to load...");
-        await delay(3000); // Adjust timeout as needed
+        await delay(600); // Adjust timeout as needed
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); // Scroll to the bottom
         moreButton = await page.$(moreButtonSelector);
     }
