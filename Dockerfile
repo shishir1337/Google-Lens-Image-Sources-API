@@ -7,9 +7,6 @@ WORKDIR /usr/src/app
 # Copy package.json and package-lock.json separately
 COPY package*.json ./
 
-# Ensure the working directory has correct permissions
-RUN chmod -R 755 /usr/src/app
-
 # Install dependencies
 RUN npm install
 
