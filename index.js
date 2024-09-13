@@ -44,6 +44,7 @@ const initCluster = async () => {
         maxConcurrency: 5,
         puppeteerOptions: {
             headless: true,
+            executablePath: process.env.CHROME_BIN || null,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         }
     });
