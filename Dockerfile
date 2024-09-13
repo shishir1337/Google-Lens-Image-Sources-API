@@ -1,21 +1,14 @@
-# Use the official Puppeteer Docker image
+# Use the Puppeteer Docker image with the desired version
 FROM ghcr.io/puppeteer/puppeteer:latest
 
 # Set the working directory
-WORKDIR /app
+WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
-COPY package.json .
-COPY package-lock.json .
+# Copy your application files to the container
+COPY . .
 
 # Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
-COPY . .
-
-# Expose the port the app runs on
-EXPOSE 3000
-
-# Start the application
+# Specify the command to run your application
 CMD ["node", "index.js"]
